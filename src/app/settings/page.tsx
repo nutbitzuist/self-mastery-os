@@ -132,6 +132,38 @@ export default function SettingsPage() {
           )}
         </div>
 
+        {/* Success Message */}
+        {showSuccess && (
+          <Card className="bg-green-500/10 border border-green-500/50">
+            <p className="text-green-400">✓ Settings saved successfully!</p>
+          </Card>
+        )}
+
+        {/* Error Messages */}
+        {error && (
+          <Card className="bg-red-500/10 border border-red-500/50">
+            <p className="text-red-400">✗ {error}</p>
+          </Card>
+        )}
+        {importError && (
+          <Card className="bg-red-500/10 border border-red-500/50">
+            <p className="text-red-400">✗ {importError}</p>
+          </Card>
+        )}
+        {showResetConfirm && (
+          <Card className="bg-amber-500/10 border border-amber-500/50">
+            <p className="text-amber-400 mb-2">⚠ Are you sure you want to reset ALL data? This cannot be undone!</p>
+            <div className="flex gap-2 mt-3">
+              <Button size="sm" variant="primary" onClick={handleReset} className="bg-red-500 hover:bg-red-600">
+                Yes, Reset All Data
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setShowResetConfirm(false)}>
+                Cancel
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* User Profile Section (only in Supabase mode) */}
         {useSupabase && user && (
           <Card>
