@@ -360,9 +360,10 @@ export function Button({ variant = 'primary', size = 'md', children, className, 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  icon?: React.ReactNode;
 }
 
-export function Input({ label, error, className, ...props }: InputProps) {
+export function Input({ label, error, icon, className, ...props }: InputProps) {
   return (
     <div className="w-full">
       {label && (
@@ -370,16 +371,24 @@ export function Input({ label, error, className, ...props }: InputProps) {
           {label}
         </label>
       )}
-      <input
-        className={cn(
-          'w-full px-4 py-2.5 bg-gray-800/50 border border-gray-700 rounded-xl text-gray-100',
-          'placeholder-gray-500 transition-all duration-200',
-          'focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20',
-          error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
-          className
+      <div className="relative">
+        {icon && (
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+            {icon}
+          </div>
         )}
-        {...props}
-      />
+        <input
+          className={cn(
+            'w-full px-4 py-2.5 bg-gray-800/50 border border-gray-700 rounded-xl text-gray-100',
+            'placeholder-gray-500 transition-all duration-200',
+            'focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20',
+            error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+            icon && 'pl-10',
+            className
+          )}
+          {...props}
+        />
+      </div>
       {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
     </div>
   );

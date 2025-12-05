@@ -4,29 +4,60 @@ import React, { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/MainLayout';
 import { Card, Button, Input, Select } from '@/components/ui';
 import { dataStore } from '@/lib/store';
+import { supabaseStore } from '@/lib/supabase-store';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { useAuth } from '@/components/AuthProvider';
 import { UserSettings, DEFAULT_USER_SETTINGS } from '@/types';
-import { Settings, Save, Check, Download, Upload, Trash2, User, Target, Moon, Scale } from 'lucide-react';
+import { Settings, Save, Check, Download, Upload, Trash2, User, Target, Moon, Scale, Mail } from 'lucide-react';
 
 export default function SettingsPage() {
+  const { user } = useAuth();
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const useSupabase = isSupabaseConfigured();
 
   useEffect(() => {
-    const loaded = dataStore.getUserSettings();
-    setSettings(loaded);
-  }, []);
+    const loadSettings = async () => {
+      setLoading(true);
+      try {
+        if (useSupabase && user) {
+          const loaded = await supabaseStore.getUserSettings();
+          setSettings(loaded);
+        } else {
+          const loaded = dataStore.getUserSettings();
+          setSettings(loaded);
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+        // Fallback to localStorage
+        const loaded = dataStore.getUserSettings();
+        setSettings(loaded);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSettings();
+  }, [useSupabase, user]);
 
   const updateSetting = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
     try {
-      dataStore.setUserSettings(settings);
+      if (useSupabase && user) {
+        await supabaseStore.setUserSettings(settings);
+      } else {
+        dataStore.setUserSettings(settings);
+      }
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('Failed to save settings. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -78,7 +109,51 @@ export default function SettingsPage() {
             Settings
           </h1>
           <p className="text-gray-400 mt-1">Configure your targets and preferences</p>
+          {useSupabase && (
+            <p className="text-xs text-green-400 mt-1">✓ Multi-user mode enabled (Supabase)</p>
+          )}
+          {!useSupabase && (
+            <p className="text-xs text-amber-400 mt-1">⚠ Local mode (localStorage)</p>
+          )}
         </div>
+
+        {/* User Profile Section (only in Supabase mode) */}
+        {useSupabase && user && (
+          <Card>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                <User className="w-5 h-5 text-blue-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-100">User Profile</h3>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1.5">Email</label>
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/50 border border-gray-700 rounded-xl text-gray-300">
+                  <Mail className="w-4 h-4 text-gray-500" />
+                  <span>{user.email}</span>
+                </div>
+              </div>
+              {user.user_metadata?.name && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1.5">Name</label>
+                  <div className="px-4 py-2.5 bg-gray-800/50 border border-gray-700 rounded-xl text-gray-300">
+                    {user.user_metadata.name}
+                  </div>
+                </div>
+              )}
+              <div className="text-xs text-gray-500">
+                User ID: {user.id.substring(0, 8)}...
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
 
         {/* Sleep Settings */}
         <Card>

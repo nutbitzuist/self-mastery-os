@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Button, Input } from './ui';
 import { dataStore } from '@/lib/store';
 import { formatDate, getTodayDate } from '@/lib/utils';
-import { format, addDays, subDays, parseISO } from 'date-fns';
+import { format, addDays, subDays, parseISO, isWeekend } from 'date-fns';
 import {
   Calendar,
   ChevronLeft,
@@ -32,31 +32,104 @@ interface DailySchedule {
   topPriorities: string[];
 }
 
-// Default time blocks template (5am - 9pm)
-const DEFAULT_TIME_BLOCKS: Omit<TimeBlock, 'id'>[] = [
-  { time: '05:00', task: 'Wake up', completed: false, category: 'routine' },
-  { time: '05:15', task: 'Exercise', completed: false, category: 'health' },
-  { time: '06:00', task: 'Shower', completed: false, category: 'routine' },
-  { time: '06:30', task: 'Breakfast / Matcha', completed: false, category: 'routine' },
-  { time: '07:00', task: 'Morning preparation', completed: false, category: 'routine' },
-  { time: '07:30', task: 'Commute / Morning meeting', completed: false, category: 'work' },
-  { time: '08:00', task: 'WhatsApp notes', completed: false, category: 'work' },
-  { time: '08:30', task: 'Morning calls', completed: false, category: 'work' },
-  { time: '09:00', task: 'Deep work block 1', completed: false, category: 'work' },
-  { time: '10:00', task: '', completed: false, category: 'work' },
-  { time: '11:00', task: '', completed: false, category: 'work' },
-  { time: '12:00', task: 'Lunch', completed: false, category: 'routine' },
-  { time: '13:00', task: 'Work block', completed: false, category: 'work' },
-  { time: '14:00', task: '', completed: false, category: 'work' },
-  { time: '15:00', task: '', completed: false, category: 'work' },
-  { time: '16:00', task: 'Wrap up / Leave office', completed: false, category: 'work' },
-  { time: '17:00', task: 'Self improvement', completed: false, category: 'personal' },
-  { time: '18:00', task: 'Deep work / Side project', completed: false, category: 'personal' },
-  { time: '19:00', task: 'Shower / Dinner', completed: false, category: 'routine' },
-  { time: '20:00', task: 'Prepare for next day', completed: false, category: 'routine' },
-  { time: '20:30', task: 'No screen time / Read', completed: false, category: 'health' },
-  { time: '21:00', task: 'Meditation & Sleep', completed: false, category: 'health' },
-];
+// Generate time slots every 15 minutes from 5am to 9pm (to support exact times like 5:15, 7:15, 8:40)
+function generateTimeSlots(): string[] {
+  const slots: string[] = [];
+  for (let hour = 5; hour <= 21; hour++) {
+    for (let minute = 0; minute < 60; minute += 15) {
+      if (hour === 21 && minute > 0) break; // Stop at 9:00 PM
+      slots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+    }
+  }
+  return slots;
+}
+
+// Default weekday time blocks template (exact times as specified)
+const DEFAULT_WEEKDAY_BLOCKS: Record<string, Omit<TimeBlock, 'id' | 'time'>> = {
+  '05:00': { task: 'Wake up', completed: false, category: 'routine' },
+  '05:15': { task: 'Exercise', completed: false, category: 'health' },
+  '06:00': { task: 'Shower', completed: false, category: 'routine' },
+  '06:30': { task: 'Matcha', completed: false, category: 'routine' },
+  '07:15': { task: 'Morning meetings', completed: false, category: 'work' },
+  '08:00': { task: 'WhatsApp notes', completed: false, category: 'work' },
+  '08:40': { task: 'Morning calls', completed: false, category: 'work' },
+  '09:00': { task: 'Sales note', completed: false, category: 'work' },
+  '09:30': { task: 'Morning calls', completed: false, category: 'work' },
+  '10:00': { task: '', completed: false, category: 'work' },
+  '10:30': { task: '', completed: false, category: 'work' },
+  '11:00': { task: '', completed: false, category: 'work' },
+  '11:30': { task: '', completed: false, category: 'work' },
+  '12:00': { task: '', completed: false, category: 'work' },
+  '12:30': { task: 'Lunch', completed: false, category: 'routine' },
+  '13:00': { task: '', completed: false, category: 'work' },
+  '13:30': { task: '', completed: false, category: 'work' },
+  '14:00': { task: '', completed: false, category: 'work' },
+  '14:30': { task: '', completed: false, category: 'work' },
+  '15:00': { task: '', completed: false, category: 'work' },
+  '15:30': { task: '', completed: false, category: 'work' },
+  '16:00': { task: '', completed: false, category: 'work' },
+  '16:30': { task: 'Leave from office', completed: false, category: 'work' },
+  '17:00': { task: '', completed: false, category: 'work' },
+  '17:15': { task: 'Self improvement', completed: false, category: 'personal' },
+  '18:00': { task: 'Deep work / Side project', completed: false, category: 'personal' },
+  '18:30': { task: 'Deep work / Side project', completed: false, category: 'personal' },
+  '19:00': { task: 'Shower', completed: false, category: 'routine' },
+  '19:30': { task: '', completed: false, category: 'routine' },
+  '20:00': { task: 'Prepare for next day', completed: false, category: 'routine' },
+  '20:30': { task: 'No screen time / Read', completed: false, category: 'health' },
+  '21:00': { task: 'Meditation & Sleep', completed: false, category: 'health' },
+};
+
+// Default weekend time blocks template (exact times as specified)
+const DEFAULT_WEEKEND_BLOCKS: Record<string, Omit<TimeBlock, 'id' | 'time'>> = {
+  '05:00': { task: 'Wake up', completed: false, category: 'routine' },
+  '05:15': { task: 'Exercise', completed: false, category: 'health' },
+  '06:00': { task: 'Shower', completed: false, category: 'routine' },
+  '06:30': { task: 'Matcha', completed: false, category: 'routine' },
+  '07:00': { task: '', completed: false, category: 'personal' },
+  '07:30': { task: '', completed: false, category: 'personal' },
+  '08:00': { task: '', completed: false, category: 'personal' },
+  '08:30': { task: '', completed: false, category: 'personal' },
+  '09:00': { task: '', completed: false, category: 'personal' },
+  '09:30': { task: '', completed: false, category: 'personal' },
+  '10:00': { task: '', completed: false, category: 'personal' },
+  '10:30': { task: '', completed: false, category: 'personal' },
+  '11:00': { task: '', completed: false, category: 'personal' },
+  '11:30': { task: 'Lunch', completed: false, category: 'routine' },
+  '12:00': { task: '', completed: false, category: 'personal' },
+  '12:30': { task: '', completed: false, category: 'personal' },
+  '13:00': { task: '', completed: false, category: 'personal' },
+  '13:30': { task: '', completed: false, category: 'personal' },
+  '14:00': { task: '', completed: false, category: 'personal' },
+  '14:30': { task: '', completed: false, category: 'personal' },
+  '15:00': { task: '', completed: false, category: 'personal' },
+  '15:30': { task: 'Dinner', completed: false, category: 'routine' },
+  '16:00': { task: '', completed: false, category: 'personal' },
+  '16:30': { task: '', completed: false, category: 'personal' },
+  '17:00': { task: '', completed: false, category: 'personal' },
+  '17:30': { task: '', completed: false, category: 'personal' },
+  '18:00': { task: '', completed: false, category: 'personal' },
+  '18:30': { task: '', completed: false, category: 'personal' },
+  '19:00': { task: 'Shower', completed: false, category: 'routine' },
+  '19:30': { task: '', completed: false, category: 'routine' },
+  '20:00': { task: 'Prepare for next day', completed: false, category: 'routine' },
+  '20:30': { task: 'No screen time / Read', completed: false, category: 'health' },
+  '21:00': { task: 'Meditation & Sleep', completed: false, category: 'health' },
+};
+
+// Helper to create time blocks from template (only for times specified in template)
+function createTimeBlocksFromTemplate(
+  date: string,
+  template: Record<string, Omit<TimeBlock, 'id' | 'time'>>
+): TimeBlock[] {
+  return Object.entries(template)
+    .sort(([timeA], [timeB]) => timeA.localeCompare(timeB))
+    .map(([time, block], index) => ({
+      id: `${date}-${index}`,
+      time,
+      ...block,
+    }));
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   routine: 'bg-gray-500/20 border-gray-500/30 text-gray-400',
@@ -84,15 +157,25 @@ export function DailyPlanner() {
     const schedules: Record<string, DailySchedule> = stored ? JSON.parse(stored) : {};
     
     if (schedules[date]) {
-      setSchedule(schedules[date]);
+      // Use existing schedule, ensuring IDs are set and sorted by time
+      const existingBlocks = schedules[date].timeBlocks.map((block, index) => ({
+        ...block,
+        id: block.id || `${date}-${index}`,
+      }));
+      
+      setSchedule({
+        ...schedules[date],
+        timeBlocks: existingBlocks.sort((a, b) => a.time.localeCompare(b.time)),
+      });
     } else {
-      // Create new schedule from template
+      // Create new schedule from template based on weekday/weekend
+      const dateObj = parseISO(date);
+      const isWeekendDay = isWeekend(dateObj);
+      const template = isWeekendDay ? DEFAULT_WEEKEND_BLOCKS : DEFAULT_WEEKDAY_BLOCKS;
+      
       const newSchedule: DailySchedule = {
         date,
-        timeBlocks: DEFAULT_TIME_BLOCKS.map((block, index) => ({
-          ...block,
-          id: `${date}-${index}`,
-        })),
+        timeBlocks: createTimeBlocksFromTemplate(date, template),
         topPriorities: ['', '', ''],
       };
       setSchedule(newSchedule);
@@ -311,9 +394,14 @@ export function DailyPlanner() {
             </div>
             <h3 className="text-lg font-semibold text-gray-100">Schedule</h3>
           </div>
-          <Button variant="ghost" size="sm" onClick={addTimeBlock}>
-            <Plus className="w-4 h-4" /> Add Block
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-gray-500">
+              {isWeekend(parseISO(selectedDate)) ? 'Weekend Schedule' : 'Weekday Schedule'}
+            </div>
+            <Button variant="ghost" size="sm" onClick={addTimeBlock}>
+              <Plus className="w-4 h-4" /> Add Time Block
+            </Button>
+          </div>
         </div>
 
         {/* Category Legend */}
@@ -326,7 +414,7 @@ export function DailyPlanner() {
         </div>
 
         {/* Time Block List */}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {schedule.timeBlocks.map((block) => (
             <div
               key={block.id}
@@ -336,13 +424,16 @@ export function DailyPlanner() {
                   : 'bg-gray-800/30 border-gray-700/50 hover:border-gray-600'
               }`}
             >
-              {/* Time */}
-              <input
-                type="time"
-                value={block.time}
-                onChange={(e) => updateTimeBlock(block.id, { time: e.target.value })}
-                className="w-20 px-2 py-1 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-300 text-sm focus:border-brand-500"
-              />
+              {/* Time - Editable */}
+              <div className="w-20 flex-shrink-0">
+                <input
+                  type="time"
+                  value={block.time}
+                  onChange={(e) => updateTimeBlock(block.id, { time: e.target.value })}
+                  step="60"
+                  className="w-full px-2 py-1 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-300 text-sm font-mono focus:border-brand-500 focus:outline-none"
+                />
+              </div>
 
               {/* Checkbox */}
               <button
@@ -362,7 +453,7 @@ export function DailyPlanner() {
                 value={block.task}
                 onChange={(e) => updateTimeBlock(block.id, { task: e.target.value })}
                 placeholder="What are you doing?"
-                className={`flex-1 px-3 py-1.5 bg-transparent border-0 text-gray-200 placeholder-gray-500 focus:outline-none ${
+                className={`flex-1 min-w-0 px-3 py-1.5 bg-transparent border-0 text-gray-200 placeholder-gray-500 focus:outline-none ${
                   block.completed ? 'line-through text-gray-400' : ''
                 }`}
               />
@@ -371,7 +462,7 @@ export function DailyPlanner() {
               <select
                 value={block.category}
                 onChange={(e) => updateTimeBlock(block.id, { category: e.target.value as TimeBlock['category'] })}
-                className={`px-2 py-1 rounded-lg border text-xs ${CATEGORY_COLORS[block.category]} bg-transparent cursor-pointer`}
+                className={`px-3 py-1.5 rounded-lg border text-xs font-medium flex-shrink-0 ${CATEGORY_COLORS[block.category]} bg-transparent cursor-pointer`}
               >
                 <option value="routine">Routine</option>
                 <option value="work">Work</option>
@@ -383,7 +474,8 @@ export function DailyPlanner() {
               {/* Delete */}
               <button
                 onClick={() => deleteTimeBlock(block.id)}
-                className="p-1 rounded-lg hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-colors flex-shrink-0"
+                title="Delete time block"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
