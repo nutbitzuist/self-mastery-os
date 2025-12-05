@@ -20,7 +20,8 @@ import {
   getMotivationalMessage 
 } from '@/lib/utils';
 import { dataStore } from '@/lib/store';
-import { DailyEntry, DashboardStats, Goal } from '@/types';
+import { DailyEntry, DashboardStats, Goal, WeeklyEntry } from '@/types';
+import { startOfWeek, format } from 'date-fns';
 import {
   Plus,
   TrendingUp,
@@ -41,29 +42,52 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
-// Sample AI insights for demonstration
-const SAMPLE_INSIGHTS = [
-  {
-    dimension: 'mental_health',
-    reason: 'Meditation completed only 3/7 days this week. Your stress levels are 25% higher on days you skip.',
-    suggestion: 'Try a 5-min morning meditation right after waking up.',
-  },
-  {
-    dimension: 'productivity',
-    reason: 'Deep work averaged 1.2 hrs vs your 1.5 hr target. Best days are when you start before 6am.',
-    suggestion: 'Block 5:30-7:00am for deep work before morning meetings.',
-  },
-  {
-    dimension: 'physical_health',
-    reason: 'Protein target hit only 4/7 days. You\'re 20g short on average.',
-    suggestion: 'Add a protein shake post-workout to close the gap.',
-  },
-];
+// Helper to generate insights from real data
+function generateInsightsFromData(stats: DashboardStats): Array<{dimension: string; reason: string; suggestion: string}> {
+  const insights: Array<{dimension: string; reason: string; suggestion: string}> = [];
+  
+  // Only show insights if there's actual data
+  if (stats.meditation_days < 5 && stats.meditation_days > 0) {
+    insights.push({
+      dimension: 'mental_health',
+      reason: `Meditation completed only ${stats.meditation_days}/7 days this week.`,
+      suggestion: 'Try a 5-min morning meditation right after waking up.',
+    });
+  }
+  
+  if (stats.avg_deep_work_hours < 1.5 && stats.avg_deep_work_hours > 0) {
+    insights.push({
+      dimension: 'productivity',
+      reason: `Deep work averaged ${stats.avg_deep_work_hours.toFixed(1)} hrs vs your 1.5 hr target.`,
+      suggestion: 'Block 5:30-7:00am for deep work before morning meetings.',
+    });
+  }
+  
+  if (stats.protein_target_hit_days < 6 && stats.protein_target_hit_days > 0) {
+    insights.push({
+      dimension: 'physical_health',
+      reason: `Protein target hit only ${stats.protein_target_hit_days}/7 days this week.`,
+      suggestion: 'Add a protein shake post-workout to close the gap.',
+    });
+  }
+  
+  // If no insights yet but have data, show encouraging message
+  if (insights.length === 0 && (stats.meditation_days > 0 || stats.avg_deep_work_hours > 0 || stats.protein_target_hit_days > 0)) {
+    insights.push({
+      dimension: 'general',
+      reason: 'Keep up the great work! Your habits are on track.',
+      suggestion: 'Continue logging daily to track your progress.',
+    });
+  }
+  
+  return insights.slice(0, 3); // Max 3 insights
+}
 
 export function DailyCockpit() {
   const [todayEntry, setTodayEntry] = useState<DailyEntry | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [weeklyEntry, setWeeklyEntry] = useState<WeeklyEntry | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -73,9 +97,16 @@ export function DailyCockpit() {
     const calculatedStats = calculateDashboardStats(allEntries, 87500);
     const loadedGoals = dataStore.getGoals();
     
+    // Get current week's weekly entry for real data
+    const weeklyEntries = dataStore.getWeeklyEntries();
+    const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const weekStartDate = format(currentWeekStart, 'yyyy-MM-dd');
+    const currentWeeklyEntry = weeklyEntries.find(e => e.week_start_date === weekStartDate) || null;
+    
     setTodayEntry(entry);
     setStats(calculatedStats);
     setGoals(loadedGoals);
+    setWeeklyEntry(currentWeeklyEntry);
     setIsLoaded(true);
   }, []);
 
@@ -176,25 +207,27 @@ export function DailyCockpit() {
         />
       </div>
 
-      {/* AI Insights */}
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-100 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-amber-400" />
-            AI Insights: 3 Areas to Improve This Week
-          </h2>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {SAMPLE_INSIGHTS.map((insight, index) => (
-            <InsightCard
-              key={index}
-              dimension={insight.dimension}
-              reason={insight.reason}
-              suggestion={insight.suggestion}
-            />
-          ))}
-        </div>
-      </Card>
+      {/* Insights from Real Data */}
+      {generateInsightsFromData(stats).length > 0 && (
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-100 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-amber-400" />
+              Insights: Areas to Focus On
+            </h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {generateInsightsFromData(stats).map((insight, index) => (
+              <InsightCard
+                key={index}
+                dimension={insight.dimension}
+                reason={insight.reason}
+                suggestion={insight.suggestion}
+              />
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Focus Areas */}
       <div className="grid gap-4 lg:grid-cols-2">
@@ -364,14 +397,18 @@ export function DailyCockpit() {
                   <Youtube className="w-4 h-4 text-red-400" />
                   <div>
                     <p className="text-xs text-gray-400">YouTube Videos</p>
-                    <p className="text-sm font-medium text-gray-200">0/1</p>
+                    <p className="text-sm font-medium text-gray-200">
+                      {weeklyEntry ? `${weeklyEntry.youtube_video_count}/${incomeGoal?.leading_indicators?.find(li => li.name === 'YouTube videos posted')?.target_per_week || 1}` : '0/1'}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-800/30">
                   <Users className="w-4 h-4 text-blue-400" />
                   <div>
                     <p className="text-xs text-gray-400">Client Outreach</p>
-                    <p className="text-sm font-medium text-gray-200">5/10</p>
+                    <p className="text-sm font-medium text-gray-200">
+                      {weeklyEntry ? `${weeklyEntry.client_outreach_count}/${incomeGoal?.leading_indicators?.find(li => li.name === 'Client outreach')?.target_per_week || 10}` : '0/10'}
+                    </p>
                   </div>
                 </div>
               </div>

@@ -215,13 +215,8 @@ const SAMPLE_GOALS: Goal[] = [
 class DataStore {
   // Daily entries
   getDailyEntries(): DailyEntry[] {
-    const stored = storage.get<DailyEntry[]>(STORAGE_KEYS.DAILY_ENTRIES, []);
-    if (stored.length === 0) {
-      // Return sample data for demo
-      this.setDailyEntries(SAMPLE_DAILY_ENTRIES);
-      return SAMPLE_DAILY_ENTRIES;
-    }
-    return stored;
+    // Return only real user data - no sample data
+    return storage.get<DailyEntry[]>(STORAGE_KEYS.DAILY_ENTRIES, []);
   }
 
   setDailyEntries(entries: DailyEntry[]): void {
@@ -303,12 +298,8 @@ class DataStore {
 
   // Goals
   getGoals(): Goal[] {
-    const stored = storage.get<Goal[]>(STORAGE_KEYS.GOALS, []);
-    if (stored.length === 0) {
-      this.setGoals(SAMPLE_GOALS);
-      return SAMPLE_GOALS;
-    }
-    return stored;
+    // Return only real user data - no sample data
+    return storage.get<Goal[]>(STORAGE_KEYS.GOALS, []);
   }
 
   setGoals(goals: Goal[]): void {
@@ -343,12 +334,8 @@ class DataStore {
 
   // Principles
   getPrinciples(): Principle[] {
-    const stored = storage.get<Principle[]>(STORAGE_KEYS.PRINCIPLES, []);
-    if (stored.length === 0) {
-      this.setPrinciples(SAMPLE_PRINCIPLES);
-      return SAMPLE_PRINCIPLES;
-    }
-    return stored;
+    // Return only real user data - no sample data
+    return storage.get<Principle[]>(STORAGE_KEYS.PRINCIPLES, []);
   }
 
   setPrinciples(principles: Principle[]): void {
