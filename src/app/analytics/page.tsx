@@ -6,6 +6,8 @@ import { Card } from '@/components/ui';
 import { dataStore } from '@/lib/store';
 import { DailyEntry, LIFE_DIMENSIONS } from '@/types';
 import { calculateDashboardStats } from '@/lib/utils';
+import { calculateWeeklyScorecard } from '@/lib/scorecard';
+import { startOfWeek } from 'date-fns';
 import { BarChart3, TrendingUp, Activity, Moon, Brain, Scale, Zap } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar } from 'recharts';
 import { format, subDays, parseISO } from 'date-fns';
@@ -39,19 +41,27 @@ export default function AnalyticsPage() {
     };
   });
 
-  // Habit completion data for bar chart
+  // Habit completion data for bar chart (last 30 days or all if less)
+  const recentEntries = entries.length > 0 
+    ? entries.slice(-30) 
+    : entries;
   const habitData = [
-    { name: 'Exercise', completed: entries.filter(e => e.exercise_done).length, total: entries.length, color: '#f97316' },
-    { name: 'Meditation', completed: entries.filter(e => e.meditation_done).length, total: entries.length, color: '#8b5cf6' },
-    { name: 'Reading', completed: entries.filter(e => e.reading_done).length, total: entries.length, color: '#3b82f6' },
-    { name: 'AI Skills', completed: entries.filter(e => e.ai_skills_done).length, total: entries.length, color: '#06b6d4' },
-    { name: 'Protein', completed: entries.filter(e => e.protein_target_hit).length, total: entries.length, color: '#22c55e' },
-  ].map(h => ({ ...h, rate: entries.length > 0 ? Math.round((h.completed / h.total) * 100) : 0 }));
+    { name: 'Exercise', completed: recentEntries.filter(e => e.exercise_done).length, total: recentEntries.length, color: '#f97316' },
+    { name: 'Meditation', completed: recentEntries.filter(e => e.meditation_done).length, total: recentEntries.length, color: '#8b5cf6' },
+    { name: 'Reading', completed: recentEntries.filter(e => e.reading_done).length, total: recentEntries.length, color: '#3b82f6' },
+    { name: 'AI Skills', completed: recentEntries.filter(e => e.ai_skills_done).length, total: recentEntries.length, color: '#06b6d4' },
+    { name: 'Protein', completed: recentEntries.filter(e => e.protein_target_hit).length, total: recentEntries.length, color: '#22c55e' },
+  ].map(h => ({ ...h, rate: recentEntries.length > 0 ? Math.round((h.completed / h.total) * 100) : 0 }));
 
-  // Life dimensions radar data (mock - would come from monthly reviews)
-  const dimensionScores = LIFE_DIMENSIONS.slice(0, 8).map(dim => ({
+  // Life dimensions radar data - use real scorecard data
+  const weeklyEntries = dataStore.getWeeklyEntries();
+  const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const scorecard = calculateWeeklyScorecard(entries, weeklyEntries, currentWeekStart);
+  
+  // Convert scorecard percentages (0-100) to 0-10 scale for radar chart
+  const dimensionScores = scorecard.dimensions.map(dim => ({
     dimension: dim.name.split(' ')[0],
-    score: Math.floor(Math.random() * 4) + 6, // Mock data 6-10
+    score: Math.round((dim.percentage / 100) * 10 * 10) / 10, // Convert to 0-10 scale with 1 decimal
     fullMark: 10,
   }));
 
@@ -116,17 +126,37 @@ export default function AnalyticsPage() {
           {/* Habit Completion Rates */}
           <Card>
             <h2 className="text-lg font-semibold text-gray-100 mb-4">Habit Completion Rate</h2>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={habitData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis type="number" domain={[0, 100]} stroke="#9ca3af" fontSize={12} />
-                  <YAxis dataKey="name" type="category" stroke="#9ca3af" fontSize={12} width={80} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }} formatter={(value: number) => [`${value}%`, 'Completion Rate']} />
-                  <Bar dataKey="rate" fill="#22c55e" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {recentEntries.length === 0 ? (
+              <div className="h-64 flex items-center justify-center">
+                <p className="text-gray-500 text-center">
+                  No data yet. Start logging your daily entries to see your habit completion rates.
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-gray-500 mb-2">
+                  Based on {recentEntries.length} {recentEntries.length === 1 ? 'entry' : 'entries'} 
+                  {recentEntries.length > 30 ? ' (last 30 days)' : ''}
+                </p>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={habitData} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis type="number" domain={[0, 100]} stroke="#9ca3af" fontSize={12} />
+                      <YAxis dataKey="name" type="category" stroke="#9ca3af" fontSize={12} width={80} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }} 
+                        formatter={(value: number, name: string, props: any) => [
+                          `${value}% (${props.payload.completed}/${props.payload.total})`, 
+                          'Completion Rate'
+                        ]} 
+                      />
+                      <Bar dataKey="rate" fill="#22c55e" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )}
           </Card>
 
           {/* Energy vs Stress */}
@@ -163,7 +193,11 @@ export default function AnalyticsPage() {
               </RadarChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-sm text-gray-500 text-center mt-2">Based on your monthly dimension scores</p>
+          <p className="text-sm text-gray-500 text-center mt-2">
+            {entries.length > 0 
+              ? 'Based on your current week\'s scorecard (0-10 scale)' 
+              : 'Start logging daily entries to see your dimension scores'}
+          </p>
         </Card>
 
         {/* Insights */}
