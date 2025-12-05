@@ -258,7 +258,21 @@ export function DailyPlanner() {
   };
 
   const addTimeBlock = () => {
-    if (!schedule) return;
+    if (!schedule) {
+      // If no schedule exists, create one first
+      const dateObj = parseISO(selectedDate);
+      const isWeekendDay = isWeekend(dateObj);
+      const template = isWeekendDay ? DEFAULT_WEEKEND_BLOCKS : DEFAULT_WEEKDAY_BLOCKS;
+      
+      const newSchedule: DailySchedule = {
+        date: selectedDate,
+        timeBlocks: createTimeBlocksFromTemplate(selectedDate, template),
+        topPriorities: ['', '', ''],
+      };
+      setSchedule(newSchedule);
+      return;
+    }
+    
     const newBlock: TimeBlock = {
       id: `${selectedDate}-custom-${Date.now()}`,
       time: '12:00',
@@ -266,10 +280,19 @@ export function DailyPlanner() {
       completed: false,
       category: 'other',
     };
-    setSchedule({
+    
+    const updatedSchedule = {
       ...schedule,
       timeBlocks: [...schedule.timeBlocks, newBlock].sort((a, b) => a.time.localeCompare(b.time)),
-    });
+    };
+    
+    setSchedule(updatedSchedule);
+    
+    // Auto-save the new block
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const schedules: Record<string, DailySchedule> = stored ? JSON.parse(stored) : {};
+    schedules[selectedDate] = updatedSchedule;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules));
   };
 
   const deleteTimeBlock = (id: string) => {
