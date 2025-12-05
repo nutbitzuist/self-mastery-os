@@ -195,11 +195,11 @@ export default function SettingsPage() {
               Export All Data (Backup)
             </Button>
             
-            <label className="block">
-              <Button variant="secondary" className="w-full justify-center" as="span">
+            <label className="block cursor-pointer">
+              <div className="inline-flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 bg-gray-700 hover:bg-gray-600 text-gray-100">
                 <Upload className="w-5 h-5" />
                 Import Data
-              </Button>
+              </div>
               <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>
             
