@@ -48,6 +48,61 @@ const dimensionIcons: Record<string, React.ReactNode> = {
   self_awareness: <Eye className="w-5 h-5" />,
 };
 
+// Helper function to show where users can input data for each metric
+function getDataInputHint(dimensionKey: string, metric: string): string | null {
+  const hints: Record<string, Record<string, string>> = {
+    physical_health: {
+      'Exercise days': '→ Daily Log: Physical Health section',
+      'Protein target hit': '→ Daily Log: Physical Health section',
+      'Sleep on schedule (9pm-5am)': '→ Daily Log: Morning Routine section',
+      'Energy level average': '→ Daily Log: Energy & Mood section',
+    },
+    mental_health: {
+      'Meditation days': '→ Daily Log: Daily Habits section',
+      'Reading days': '→ Daily Log: Daily Habits section',
+      'Stress level average': '→ Daily Log: Energy & Mood section',
+      'Sleep quality average': '→ Daily Log: Morning Routine section',
+    },
+    career_business: {
+      'Days with 1.5+ hrs deep work': '→ Daily Log: Productivity section',
+      'Task completion rate': '→ Daily Log: Productivity section',
+      'AI skills practice days': '→ Daily Log: Daily Habits section',
+      'Total deep work hours': '→ Daily Log: Productivity section',
+    },
+    wealth: {
+      'YouTube video posted': '→ Weekly Review: Business & Side Projects',
+      'Client outreach count': '→ Weekly Review: Business & Side Projects',
+      'Business development days': '→ Daily Log: Daily Habits (AI Skills)',
+      'Productive days (3+ tasks)': '→ Daily Log: Productivity section',
+    },
+    relationships: {
+      'Lunch with loved one': '→ Weekly Review: Relationships section',
+      'Family dinner': '→ Weekly Review: Relationships section',
+      'Quality time hours': '→ Weekly Review: Relationships section',
+    },
+    productivity: {
+      'Wake by 5am': '→ Daily Log: Morning Routine section',
+      'Days with 3 priorities set': '→ Daily Log: Top 3 Priorities Today',
+      'Task completion rate': '→ Daily Log: Productivity section',
+      'Deep work consistency': '→ Daily Log: Productivity section',
+    },
+    life_vision: {
+      'Big decision made': '→ Weekly Review: Weekly Reflection',
+      'Weekly review completed': '→ Weekly Review: Weekly Reflection',
+      'Focus for next week set': '→ Weekly Review: Weekly Reflection',
+      'Daily reflection done': '→ Daily Log: Reflection section',
+    },
+    self_awareness: {
+      'Daily reflection': '→ Daily Log: Reflection section',
+      'Reading days': '→ Daily Log: Daily Habits section',
+      'Meditation days': '→ Daily Log: Daily Habits section',
+      'Improvement reflection': '→ Daily Log: Reflection section',
+    },
+  };
+
+  return hints[dimensionKey]?.[metric] || null;
+}
+
 export function ScorecardPage() {
   const [scorecard, setScorecard] = useState<WeeklyScorecard | null>(null);
   const [previousScorecard, setPreviousScorecard] = useState<WeeklyScorecard | null>(null);
@@ -269,22 +324,28 @@ export function ScorecardPage() {
                   <div className="space-y-3">
                     {dimension.breakdown.map((item, index) => (
                       <div key={index} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${item.met ? 'bg-green-500/20' : 'bg-gray-700'}`}>
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${item.met ? 'bg-green-500/20' : 'bg-gray-700'}`}>
                             {item.met ? (
                               <span className="text-green-400 text-xs">✓</span>
                             ) : (
                               <span className="text-gray-500 text-xs">○</span>
                             )}
                           </div>
-                          <div>
+                          <div className="flex-1 min-w-0">
                             <span className="text-sm text-gray-300">{item.metric}</span>
                             <span className="text-xs text-gray-500 ml-2">
                               ({String(item.value)} / {String(item.target)})
                             </span>
+                            {/* Show where to input this data */}
+                            {getDataInputHint(dimension.key, item.metric) && (
+                              <div className="text-xs text-gray-600 mt-0.5 italic">
+                                {getDataInputHint(dimension.key, item.metric)}
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <div className="text-sm">
+                        <div className="text-sm flex-shrink-0">
                           <span className={item.met ? 'text-green-400' : 'text-gray-400'}>
                             {item.points}
                           </span>
