@@ -389,8 +389,8 @@ export function DailyPlanner() {
       <Card>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-cyan-500/40 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-              <Clock className="w-6 h-6 text-cyan-200" />
+            <div className="w-10 h-10 rounded-lg bg-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-500/50">
+              <Clock className="w-6 h-6 text-white" />
             </div>
             <h3 className="text-lg font-semibold text-gray-100">Schedule</h3>
           </div>
