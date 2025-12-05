@@ -37,10 +37,16 @@ export function Auth({ onAuthSuccess }: AuthProps) {
           onAuthSuccess?.();
         }
       } else {
+        // Get the current origin (works for both localhost and production)
+        const redirectTo = typeof window !== 'undefined' 
+          ? `${window.location.origin}/auth/callback`
+          : 'http://localhost:3000/auth/callback';
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
+            emailRedirectTo: redirectTo,
             data: {
               name: name || email.split('@')[0],
             },
