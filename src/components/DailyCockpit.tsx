@@ -355,39 +355,42 @@ export function DailyCockpit() {
       </div>
 
       {/* Goal Progress */}
-      <Card>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-100 flex items-center gap-2">
-            <Target className="w-5 h-5 text-brand-400" />
-            Goal Progress: 1M THB/month by Dec 2026
-          </h2>
-          <Link href="/goals" className="text-sm text-brand-400 hover:text-brand-300 flex items-center gap-1">
-            View All <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+      {(incomeGoal || weightGoal) && (
+        <Card>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-gray-100 flex items-center gap-2">
+              <Target className="w-5 h-5 text-brand-400" />
+              Goal Progress
+              {incomeGoal && `: ${incomeGoal.title}`}
+            </h2>
+            <Link href="/goals" className="text-sm text-brand-400 hover:text-brand-300 flex items-center gap-1">
+              View All <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Income Goal */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400">Current Monthly Non-Salary Income</p>
-                <p className="text-2xl font-bold text-amber-400">{formatTHB(stats.current_monthly_income)}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-400">Target</p>
-                <p className="text-lg font-semibold text-gray-300">{formatTHB(1000000)}</p>
-              </div>
-            </div>
-            <ProgressBar
-              value={stats.income_goal_progress}
-              max={100}
-              color="bg-gradient-to-r from-amber-500 to-yellow-400"
-              showValue={false}
-            />
-            <p className="text-sm text-gray-400">
-              {stats.income_goal_progress.toFixed(1)}% of goal achieved
-            </p>
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Income Goal */}
+            {incomeGoal && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">Current Monthly Non-Salary Income</p>
+                    <p className="text-2xl font-bold text-amber-400">{formatTHB(stats.current_monthly_income)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-400">Target</p>
+                    <p className="text-lg font-semibold text-gray-300">{formatTHB(incomeGoal.target_value)}</p>
+                  </div>
+                </div>
+                <ProgressBar
+                  value={stats.income_goal_progress}
+                  max={100}
+                  color="bg-gradient-to-r from-amber-500 to-yellow-400"
+                  showValue={false}
+                />
+                <p className="text-sm text-gray-400">
+                  {stats.income_goal_progress.toFixed(1)}% of goal achieved
+                </p>
 
             {/* Leading Indicators */}
             <div className="pt-4 border-t border-gray-700/50">
@@ -415,27 +418,32 @@ export function DailyCockpit() {
             </div>
           </div>
 
-          {/* Weight Goal */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400">Current Weight</p>
-                <p className="text-2xl font-bold text-cyan-400">{stats.current_weight || 81} kg</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-400">Target</p>
-                <p className="text-lg font-semibold text-gray-300">60 kg</p>
-              </div>
-            </div>
-            <ProgressBar
-              value={81 - (stats.current_weight || 81)}
-              max={21}
-              color="bg-gradient-to-r from-cyan-500 to-teal-400"
-              showValue={false}
-            />
-            <p className="text-sm text-gray-400">
-              {((81 - (stats.current_weight || 81)) / 21 * 100).toFixed(1)}% progress ({(81 - (stats.current_weight || 81)).toFixed(1)} kg lost)
-            </p>
+            {/* Weight Goal */}
+            {weightGoal && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">Current Weight</p>
+                    <p className="text-2xl font-bold text-cyan-400">{stats.current_weight || weightGoal.current_value || '--'} kg</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-400">Target</p>
+                    <p className="text-lg font-semibold text-gray-300">{weightGoal.target_value} {weightGoal.target_unit}</p>
+                  </div>
+                </div>
+                {stats.current_weight && weightGoal.current_value && (
+                  <>
+                    <ProgressBar
+                      value={Math.abs(weightGoal.current_value - (stats.current_weight || weightGoal.current_value))}
+                      max={Math.abs(weightGoal.target_value - weightGoal.current_value)}
+                      color="bg-gradient-to-r from-cyan-500 to-teal-400"
+                      showValue={false}
+                    />
+                    <p className="text-sm text-gray-400">
+                      {((Math.abs(weightGoal.current_value - (stats.current_weight || weightGoal.current_value)) / Math.abs(weightGoal.target_value - weightGoal.current_value)) * 100).toFixed(1)}% progress ({Math.abs(weightGoal.current_value - (stats.current_weight || weightGoal.current_value)).toFixed(1)} kg {weightGoal.target_value < weightGoal.current_value ? 'lost' : 'gained'})
+                    </p>
+                  </>
+                )}
 
             {/* Weight Stats */}
             <div className="pt-4 border-t border-gray-700/50">
@@ -454,10 +462,11 @@ export function DailyCockpit() {
                   </p>
                 </div>
               </div>
-            </div>
+              </div>
+            )}
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
