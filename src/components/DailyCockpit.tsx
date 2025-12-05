@@ -22,6 +22,7 @@ import {
 import { dataStore } from '@/lib/store';
 import { DailyEntry, DashboardStats, Goal, WeeklyEntry } from '@/types';
 import { startOfWeek, format } from 'date-fns';
+import { DEFAULT_USER_SETTINGS } from '@/types';
 import {
   Plus,
   TrendingUp,
@@ -88,6 +89,7 @@ export function DailyCockpit() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [weeklyEntry, setWeeklyEntry] = useState<WeeklyEntry | null>(null);
+  const [userName, setUserName] = useState<string>('User');
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -96,6 +98,7 @@ export function DailyCockpit() {
     const allEntries = dataStore.getDailyEntries();
     const calculatedStats = calculateDashboardStats(allEntries, 87500);
     const loadedGoals = dataStore.getGoals();
+    const userSettings = dataStore.getUserSettings();
     
     // Get current week's weekly entry for real data
     const weeklyEntries = dataStore.getWeeklyEntries();
@@ -107,6 +110,7 @@ export function DailyCockpit() {
     setStats(calculatedStats);
     setGoals(loadedGoals);
     setWeeklyEntry(currentWeeklyEntry);
+    setUserName(userSettings.name || DEFAULT_USER_SETTINGS.name);
     setIsLoaded(true);
   }, []);
 
@@ -130,7 +134,7 @@ export function DailyCockpit() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-100">
-            {getGreeting('Nut')}
+            {getGreeting(userName)}
           </h1>
           <p className="text-gray-400 mt-1">{formatDate(new Date())}</p>
         </div>

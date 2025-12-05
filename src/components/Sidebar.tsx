@@ -50,14 +50,14 @@ interface SidebarProps {
   userName?: string;
 }
 
-export function Sidebar({ isOpen, onClose, userName = 'Nut' }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, userName }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
   const showAuth = isSupabaseConfigured();
   
-  // Use authenticated user's name if available
-  const displayName = user?.user_metadata?.name || user?.email?.split('@')[0] || userName;
+  // Use authenticated user's name if available, fallback to prop or default
+  const displayName = user?.user_metadata?.name || user?.email?.split('@')[0] || userName || 'User';
 
   const handleSignOut = async () => {
     if (showAuth) {

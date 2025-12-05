@@ -15,6 +15,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const useSupabase = isSupabaseConfigured();
 
@@ -47,6 +48,7 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
+    setError(null);
     try {
       if (useSupabase && user) {
         await supabaseStore.setUserSettings(settings);
@@ -56,8 +58,9 @@ export default function SettingsPage() {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
-      console.error('Error saving settings:', error);
-      alert('Failed to save settings. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save settings. Please try again.';
+      setError(errorMessage);
+      setTimeout(() => setError(null), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -74,29 +77,41 @@ export default function SettingsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const [importError, setImportError] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
+    setImportError(null);
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target?.result as string);
         dataStore.importData(data);
-        alert('Data imported successfully! Refreshing...');
-        window.location.reload();
+        setShowSuccess(true);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } catch (error) {
-        alert('Error importing data. Please check the file format.');
+        setImportError('Error importing data. Please check the file format.');
+        setTimeout(() => setImportError(null), 5000);
       }
     };
     reader.readAsText(file);
   };
 
   const handleReset = () => {
-    if (confirm('Are you sure you want to reset ALL data? This cannot be undone!')) {
+    if (showResetConfirm) {
       dataStore.clearAllData();
-      alert('Data cleared! Refreshing...');
-      window.location.reload();
+      setShowSuccess(true);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } else {
+      setShowResetConfirm(true);
+      setTimeout(() => setShowResetConfirm(false), 5000);
     }
   };
 
@@ -278,9 +293,14 @@ export default function SettingsPage() {
               <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>
             
-            <Button variant="ghost" onClick={handleReset} className="w-full justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10">
+            <Button 
+              variant="ghost" 
+              onClick={handleReset} 
+              className="w-full justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              disabled={showResetConfirm}
+            >
               <Trash2 className="w-5 h-5" />
-              Reset All Data
+              {showResetConfirm ? 'Confirm Reset' : 'Reset All Data'}
             </Button>
           </div>
         </Card>
