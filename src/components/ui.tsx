@@ -35,9 +35,10 @@ interface CardProps {
   className?: string;
   hover?: boolean;
   glow?: boolean;
+  style?: React.CSSProperties;
 }
 
-export function Card({ children, className, hover = false, glow = false }: CardProps) {
+export function Card({ children, className, hover = false, glow = false, style }: CardProps) {
   return (
     <div
       className={cn(
@@ -46,6 +47,7 @@ export function Card({ children, className, hover = false, glow = false }: CardP
         glow && 'glow-green',
         className
       )}
+      style={style}
     >
       {children}
     </div>
