@@ -70,7 +70,7 @@ export function PrinciplesPage() {
     dataStore.setPrinciples(updated);
   };
 
-  const categories = [...new Set(principles.map(p => p.category))];
+  const categories = Array.from(new Set(principles.map(p => p.category)));
 
   return (
     <div className="space-y-6 animate-fade-in">
