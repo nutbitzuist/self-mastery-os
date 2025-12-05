@@ -466,7 +466,7 @@ function calculateLifeVisionScore(weekEntries: DailyEntry[], weeklyEntry?: Weekl
   totalPoints += decisionPoints;
 
   // Weekly review completed - 25 points
-  const weeklyReviewDone = weeklyEntry?.what_went_well && weeklyEntry.what_went_well.trim().length > 0;
+  const weeklyReviewDone = !!(weeklyEntry?.what_went_well && weeklyEntry.what_went_well.trim().length > 0);
   const reviewPoints = weeklyReviewDone ? 25 : 0;
   breakdown.push({
     metric: 'Weekly review completed',
@@ -479,7 +479,7 @@ function calculateLifeVisionScore(weekEntries: DailyEntry[], weeklyEntry?: Weekl
   totalPoints += reviewPoints;
 
   // Focus for next week set - 25 points
-  const focusSet = weeklyEntry?.focus_next_week && weeklyEntry.focus_next_week.trim().length > 0;
+  const focusSet = !!(weeklyEntry?.focus_next_week && weeklyEntry.focus_next_week.trim().length > 0);
   const focusPoints = focusSet ? 25 : 0;
   breakdown.push({
     metric: 'Focus for next week set',
