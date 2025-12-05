@@ -389,8 +389,8 @@ export function DailyPlanner() {
       <Card>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-              <Clock className="w-5 h-5 text-cyan-400" />
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/30 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-cyan-300" />
             </div>
             <h3 className="text-lg font-semibold text-gray-100">Schedule</h3>
           </div>
@@ -425,13 +425,13 @@ export function DailyPlanner() {
               }`}
             >
               {/* Time - Editable */}
-              <div className="w-20 flex-shrink-0">
+              <div className="w-28 flex-shrink-0">
                 <input
                   type="time"
                   value={block.time}
                   onChange={(e) => updateTimeBlock(block.id, { time: e.target.value })}
                   step="60"
-                  className="w-full px-2 py-1 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-300 text-sm font-mono focus:border-brand-500 focus:outline-none"
+                  className="w-full px-3 py-1.5 bg-gray-900/50 border border-gray-700 rounded-lg text-gray-200 text-sm font-mono font-semibold focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                 />
               </div>
 
