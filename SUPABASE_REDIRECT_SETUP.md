@@ -33,15 +33,20 @@ Your Vercel domain should be something like:
 
 4. **Click "Save"**
 
-### Step 3: Configure Email Templates (Optional)
+### Step 3: Enable Email Confirmations (Required)
 
-1. Go to: **Authentication** → **Email Templates**
-2. Select **Confirm signup** template
-3. Update the redirect URL in the template if needed:
-   ```
-   {{ .ConfirmationURL }}
-   ```
-   This will automatically use the redirect URL you configured.
+1. Go to: **Authentication** → **Providers**
+   - Direct link: https://supabase.com/dashboard/project/fqccyqrbfbxqpjlgaoog/auth/providers
+
+2. Click on **Email** provider
+
+3. Make sure these are enabled:
+   - ✅ **Enable email confirmations**: ON
+   - ✅ **Secure email change**: ON (recommended)
+
+4. Click **Save**
+
+**Note:** Email Templates are optional. The default template works fine and will use the redirect URLs you configured above.
 
 ### Step 4: Test
 
