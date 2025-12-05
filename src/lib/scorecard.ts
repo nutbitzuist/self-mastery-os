@@ -453,7 +453,7 @@ function calculateLifeVisionScore(weekEntries: DailyEntry[], weeklyEntry?: Weekl
   const maxPoints = 100;
 
   // Big decision made this week - 30 points
-  const bigDecision = weeklyEntry?.big_decision_made && weeklyEntry.big_decision_made.trim().length > 0;
+  const bigDecision = !!(weeklyEntry?.big_decision_made && weeklyEntry.big_decision_made.trim().length > 0);
   const decisionPoints = bigDecision ? 30 : 0;
   breakdown.push({
     metric: 'Big decision made',
